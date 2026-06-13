@@ -69,6 +69,68 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.get('/api/test-mail', async (req, res) => {
+  const to = req.query.to as string;
+  if (!to) {
+    return res.status(400).json({ error: 'Missing ?to=email parameter' });
+  }
+  const nodemailer = await import('nodemailer');
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  let from = process.env.SMTP_FROM || 'RELAY Support <noreply@relay.io>';
+
+  if (host === 'smtp.resend.com' && !process.env.SMTP_FROM) {
+    from = 'RELAY Support <onboarding@resend.dev>';
+  }
+
+  try {
+    if (!host || !user || !pass) {
+      throw new Error(`Missing SMTP config. host=${host}, user=${user}, pass=${pass ? 'configured' : 'not configured'}`);
+    }
+    const transporter = nodemailer.default.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
+    
+    await transporter.verify();
+
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject: 'RELAY Diagnostic Test Email',
+      text: 'This is a diagnostic test email from your RELAY service setup.',
+      html: '<p>This is a diagnostic test email from your RELAY service setup.</p>',
+    });
+
+    res.json({
+      success: true,
+      message: `Test email sent to ${to}!`,
+      messageId: info.messageId,
+      envelope: info.envelope,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack,
+      config: {
+        host,
+        port,
+        user,
+        pass: pass ? 'configured' : 'not configured',
+        from
+      }
+    });
+  }
+});
+
+
 app.get('/metrics', async (_req, res) => {
   try {
     const activeSessions = await prisma.session.count({
