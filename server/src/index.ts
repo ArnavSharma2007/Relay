@@ -59,6 +59,17 @@ app.use('/api/recordings', recordingRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/admin', adminRoutes);
 
+app.get('/api/debug-env', (_req, res) => {
+  res.json({
+    SMTP_HOST: process.env.SMTP_HOST || null,
+    SMTP_PORT: process.env.SMTP_PORT || null,
+    SMTP_USER: process.env.SMTP_USER || null,
+    SMTP_PASS: process.env.SMTP_PASS ? 'configured' : null,
+    SMTP_FROM: process.env.SMTP_FROM || null,
+    NODE_ENV: process.env.NODE_ENV || null,
+  });
+});
+
 app.get('/api/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
