@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { startGracePeriod } from '../graceManager.js';
 import {
   createWebRtcTransport,
   connectTransport,
@@ -152,8 +153,7 @@ export function registerRtcHandlers(io: Server, socket: Socket) {
 
   socket.on('disconnect', () => {
     if (data.sessionId) {
-      cleanupPeer(data.sessionId, peerId);
-      socket.to(data.sessionId).emit('rtc:peer-left', { peerId });
+      startGracePeriod(data.sessionId, peerId, io);
     }
   });
 }

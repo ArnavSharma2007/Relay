@@ -8,6 +8,7 @@ import type { Session } from '@/types';
 import { Radio } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
+import api from '@/lib/api';
 
 interface SessionRowProps {
   session: Session;
@@ -91,16 +92,27 @@ export function SessionRow({ session, index, compact }: SessionRowProps) {
               Join
             </Button>
           )}
-          {!compact && <Button size="sm" variant="ghost">Monitor</Button>}
+          {!compact && (
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/call/${session.id}?monitor=true`)}>
+              Monitor
+            </Button>
+          )}
           <ActionMenu
             items={[
-              ...(compact ? [{ label: 'Monitor session', onClick: () => addToast('info', `Monitoring session ${session.sessionCode}`) }] : []),
+              ...(compact ? [{ label: 'Monitor session', onClick: () => navigate(`/call/${session.id}?monitor=true`) }] : []),
               { label: 'Copy invite code', onClick: () => {
                 navigator.clipboard.writeText(session.inviteCode);
                 addToast('info', `Invite code copied: ${session.inviteCode}`);
               }},
               { label: 'View history', onClick: () => navigate('/session-history') },
-              { label: 'End session', onClick: () => addToast('warning', `Ended session ${session.sessionCode}`), danger: true },
+              { label: 'End session', onClick: async () => {
+                try {
+                  await api.patch(`/sessions/${session.id}/status`, { status: 'ended' });
+                  addToast('success', `Ended session ${session.sessionCode}`);
+                } catch {
+                  addToast('error', `Failed to end session ${session.sessionCode}`);
+                }
+              }, danger: true },
             ]}
           />
         </div>

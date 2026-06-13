@@ -10,6 +10,14 @@ import { connectSocket } from '@/lib/socket';
 
 type Tab = 'agent' | 'customer';
 
+interface LastSession {
+  id: string;
+  sessionCode: string;
+  inviteCode: string;
+  customerName: string;
+  role: 'agent' | 'customer';
+}
+
 export function Login() {
   const [tab,        setTab]        = useState<Tab>('agent');
   const [email,      setEmail]      = useState('');
@@ -17,11 +25,23 @@ export function Login() {
   const [inviteCode, setInviteCode] = useState('');
   const [joinLink,   setJoinLink]   = useState('');
   const [loading,    setLoading]    = useState(false);
+  const [lastSession, setLastSession] = useState<LastSession | null>(null);
 
   const setAuth  = useAuthStore((s) => s.setAuth);
   const addToast = useUIStore((s) => s.addToast);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const raw = localStorage.getItem('relay_last_session');
+    if (raw) {
+      try {
+        setLastSession(JSON.parse(raw));
+      } catch {
+        localStorage.removeItem('relay_last_session');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -230,6 +250,17 @@ export function Login() {
                   {loading ? 'Signing in…' : 'Sign In'}
                 </Button>
 
+                {lastSession && lastSession.role === 'agent' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full border-[var(--primary)] text-[var(--primary-light)]"
+                    onClick={() => navigate(`/call/${lastSession.id}`)}
+                  >
+                    Rejoin Last Call ({lastSession.sessionCode})
+                  </Button>
+                )}
+
                 <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
                   <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
                   or
@@ -291,13 +322,24 @@ export function Login() {
                     }}
                   />
                 </div>
-                <Button
+                 <Button
                   className="w-full"
                   onClick={() => handleCustomerJoin()}
                   disabled={loading || !inviteCode}
                 >
                   Join Session
                 </Button>
+
+                {lastSession && lastSession.role === 'customer' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full border-[var(--primary)] text-[var(--primary-light)]"
+                    onClick={() => handleCustomerJoin(lastSession.inviteCode)}
+                  >
+                    Join Back to Session ({lastSession.sessionCode})
+                  </Button>
+                )}
 
                 <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
                   <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />

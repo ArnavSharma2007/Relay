@@ -1,4 +1,5 @@
 import { prisma } from '../db/client.js';
+import { sendInviteEmail } from './mailService.js';
 import type {
   Session,
   ChatMessage,
@@ -148,6 +149,14 @@ export async function createSession(data: {
       type: 'session',
     },
   });
+
+  sendInviteEmail({
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    sessionCode,
+    inviteCode,
+    inviteLink,
+  }).catch((err) => console.error('Failed to send session invite email:', err));
 
   return mapSession(row);
 }

@@ -62,6 +62,8 @@ export function CallRoom() {
 
   const duration = useLiveDuration(currentSession?.startedAt ?? null, true);
 
+  const isMonitor = new URLSearchParams(window.location.search).get('monitor') === 'true';
+
   useEffect(() => {
     connectSocket();
     if (!sessionId) return;
@@ -71,10 +73,45 @@ export function CallRoom() {
       setChatMessages(data.chat);
       setTimelineEvents(data.timeline);
       setFiles(data.files);
+
+      if (data.session.status !== 'ended' && data.session.status !== 'failed') {
+        localStorage.setItem(
+          'relay_last_session',
+          JSON.stringify({
+            id: data.session.id,
+            sessionCode: data.session.sessionCode,
+            inviteCode: data.session.inviteCode,
+            customerName: data.session.customerName,
+            role: isAgent ? 'agent' : 'customer',
+          })
+        );
+      }
     });
 
     return () => { reset(); };
-  }, [sessionId, setCurrentSession, setChatMessages, setTimelineEvents, setFiles, reset]);
+  }, [sessionId, setCurrentSession, setChatMessages, setTimelineEvents, setFiles, reset, isAgent]);
+
+  useEffect(() => {
+    if (currentSession?.status === 'ended') {
+      localStorage.removeItem('relay_last_session');
+      addToast('info', 'This session has ended');
+      handleLeave();
+    }
+  }, [currentSession?.status]);
+
+  useEffect(() => {
+    if (isAgent && !isMonitor && currentSession && localStream && !isRecording) {
+      const autoRecordSetting = localStorage.getItem('settings_auto_record');
+      if (
+        autoRecordSetting === 'yes' ||
+        (autoRecordSetting === 'high' && currentSession.priority === 'high')
+      ) {
+        startMediaRecording(localStream).then(() => {
+          useCallStore.getState().setRecording(true);
+        });
+      }
+    }
+  }, [isAgent, isMonitor, currentSession, localStream, isRecording, startMediaRecording]);
 
   const remoteVideo    = remoteStreams.find((r) => r.kind === 'video');
   const primaryStream  = swapped ? localStream : remoteVideo?.stream;
@@ -82,7 +119,10 @@ export function CallRoom() {
   const primaryName    = swapped ? 'You' : remoteVideo?.peerName || currentSession?.customerName || 'Participant';
   const secondaryName  = swapped ? remoteVideo?.peerName || 'Participant' : 'You';
 
-  const handleLeave = () => navigate(isAgent ? '/live-sessions' : '/login');
+  const handleLeave = () => {
+    localStorage.removeItem('relay_last_session');
+    navigate(isAgent ? '/live-sessions' : '/login');
+  };
 
   const handleToggleRecording = async () => {
     if (isRecording) {
@@ -167,21 +207,23 @@ export function CallRoom() {
             />
 
             {/* PiP tile — absolutely positioned, no layout={} prop to avoid jitter */}
-            <div
-              className="absolute bottom-6 left-4 md:left-5 w-[120px] md:w-[180px] h-[90px] md:h-[135px] z-10 rounded-xl overflow-hidden"
-              style={{
-                boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-                border: '1.5px solid rgba(124,92,252,0.3)',
-              }}
-            >
-              <VideoTile
-                stream={secondaryStream}
-                name={secondaryName}
-                isSelf={!swapped}
-                onClick={() => setSwapped(!swapped)}
-                className="w-full h-full"
-              />
-            </div>
+            {!isMonitor && (
+              <div
+                className="absolute bottom-6 left-4 md:left-5 w-[120px] md:w-[180px] h-[90px] md:h-[135px] z-10 rounded-xl overflow-hidden"
+                style={{
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+                  border: '1.5px solid rgba(124,92,252,0.3)',
+                }}
+              >
+                <VideoTile
+                  stream={secondaryStream}
+                  name={secondaryName}
+                  isSelf={!swapped}
+                  onClick={() => setSwapped(!swapped)}
+                  className="w-full h-full"
+                />
+              </div>
+            )}
 
             {/* Chat toggle for customer */}
             {!isAgent && (
@@ -209,8 +251,9 @@ export function CallRoom() {
               onToggleScreenShare={() => addToast('info', 'Screen share started')}
               onToggleRecording={handleToggleRecording}
               onLeave={handleLeave}
-              onRaiseIssue={isAgent ? () => setShowIssueDrawer(true) : undefined}
-              isAgent={isAgent}
+              onRaiseIssue={isAgent && !isMonitor ? () => setShowIssueDrawer(true) : undefined}
+              isAgent={isAgent && !isMonitor}
+              isMonitor={isMonitor}
             />
           </div>
         </div>

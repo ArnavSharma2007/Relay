@@ -41,6 +41,11 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res) => {
     storageKey: key,
   });
 
+  const io = req.app.get('io');
+  if (io) {
+    io.to(sessionId).emit('file:added', { file });
+  }
+
   res.status(201).json(file);
 });
 

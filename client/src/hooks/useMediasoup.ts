@@ -267,6 +267,13 @@ export function useMediasoup(sessionId: string | undefined) {
   const startLocalMedia = useCallback(async () => {
     if (!sessionId) return;
 
+    const isMonitor = new URLSearchParams(window.location.search).get('monitor') === 'true';
+    if (isMonitor) {
+      console.log('[Monitor Mode] Active. Skipping local media capture.');
+      getSocket().emit('rtc:signal', { sessionId, signal: { type: 'hello' } });
+      return;
+    }
+
     let stream: MediaStream | null = null;
     try {
       stream = await navigator.mediaDevices.getUserMedia({

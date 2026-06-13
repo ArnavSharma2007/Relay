@@ -34,11 +34,16 @@ export function useSocket() {
       addTimelineEvent(event);
     });
 
+    socket.on('file:added', ({ file }) => {
+      useSessionStore.getState().addFile(file);
+    });
+
     return () => {
       socket.off('session:update');
       socket.off('chat:message');
       socket.off('chat:typing');
       socket.off('timeline:event');
+      socket.off('file:added');
     };
   }, [updateSession, addChatMessage, addTimelineEvent, setTyping]);
 

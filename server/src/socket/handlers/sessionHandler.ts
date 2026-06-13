@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { cancelGracePeriod } from '../graceManager.js';
 import {
   getSessionById,
   updateSessionStatus,
@@ -29,45 +30,51 @@ export function registerSessionHandlers(io: Server, socket: Socket) {
       return;
     }
 
+    const isReconnecting = cancelGracePeriod(sessionId, data.user.id);
+
     data.sessionId = sessionId;
     socket.join(sessionId);
 
-    await addParticipant({
-      sessionId,
-      userId: data.user.id,
-      name: data.user.name,
-      email: data.user.email,
-      role: data.user.role,
-      joinedAt: new Date().toISOString(),
-      quality: 'hd',
-    });
+    if (!isReconnecting) {
+      await addParticipant({
+        sessionId,
+        userId: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+        joinedAt: new Date().toISOString(),
+        quality: 'hd',
+      });
 
-    if (session.status === 'waiting') {
-      const updated = await updateSessionStatus(sessionId, 'connecting');
-      if (updated) io.emit('session:update', { session: updated });
-    }
-
-    setTimeout(async () => {
-      const current = await getSessionById(sessionId);
-      if (current && (current.status === 'connecting' || current.status === 'waiting')) {
-        const updated = await updateSessionStatus(sessionId, 'live');
-        if (updated) {
-          io.emit('session:update', { session: updated });
-          const event = await addTimelineEvent(sessionId, {
-            type: 'join',
-            description: `${data.user.role === 'customer' ? 'Customer' : 'Agent'} joined`,
-            actor: data.user.name,
-            actorId: data.user.id,
-          });
-          io.to(sessionId).emit('timeline:event', { event });
-        }
+      if (session.status === 'waiting') {
+        const updated = await updateSessionStatus(sessionId, 'connecting');
+        if (updated) io.emit('session:update', { session: updated });
       }
-    }, 1500);
 
-    socket.to(sessionId).emit('session:participant', {
-      action: 'join',
-      user: { id: data.user.id, name: data.user.name, role: data.user.role },
-    });
+      setTimeout(async () => {
+        const current = await getSessionById(sessionId);
+        if (current && (current.status === 'connecting' || current.status === 'waiting')) {
+          const updated = await updateSessionStatus(sessionId, 'live');
+          if (updated) {
+            io.emit('session:update', { session: updated });
+            const event = await addTimelineEvent(sessionId, {
+              type: 'join',
+              description: `${data.user.role === 'customer' ? 'Customer' : 'Agent'} joined`,
+              actor: data.user.name,
+              actorId: data.user.id,
+            });
+            io.to(sessionId).emit('timeline:event', { event });
+          }
+        }
+      }, 1500);
+
+      socket.to(sessionId).emit('session:participant', {
+        action: 'join',
+        user: { id: data.user.id, name: data.user.name, role: data.user.role },
+      });
+    } else {
+      console.log(`[Grace Period] Seamless reconnection for ${data.user.name} in session ${sessionId}`);
+    }
 
     socket.emit('reconnect:ack', { sessionId });
   });

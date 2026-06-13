@@ -95,6 +95,12 @@ router.patch('/:id/status', async (req, res) => {
     res.status(404).json({ error: 'Session not found' });
     return;
   }
+
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('session:update', { session });
+  }
+
   res.json(session);
 });
 

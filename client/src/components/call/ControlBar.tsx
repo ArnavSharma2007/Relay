@@ -18,6 +18,7 @@ interface ControlBarProps {
   onLeave: () => void;
   onRaiseIssue?: () => void;
   isAgent?: boolean;
+  isMonitor?: boolean;
 }
 
 export function ControlBar({
@@ -28,6 +29,7 @@ export function ControlBar({
   onLeave,
   onRaiseIssue,
   isAgent = true,
+  isMonitor = false,
 }: ControlBarProps) {
   const isMuted       = useCallStore((s) => s.isMuted);
   const isCameraOff   = useCallStore((s) => s.isCameraOff);
@@ -40,7 +42,7 @@ export function ControlBar({
     onClick: () => void;
     active?: boolean;
     highlight?: boolean;
-  }[] = [
+  }[] = isMonitor ? [] : [
     {
       icon:   isMuted ? MicOff : Mic,
       label:  isMuted ? 'Unmute' : 'Mute',

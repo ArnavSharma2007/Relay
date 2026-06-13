@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -8,21 +9,51 @@ import { useUIStore } from '@/store/uiStore';
 export function Settings() {
   const addToast = useUIStore((s) => s.addToast);
 
+  const [sessionAlerts, setSessionAlerts] = useState(() => localStorage.getItem('settings_session_alerts') !== 'false');
+  const [recordingNotifications, setRecordingNotifications] = useState(() => localStorage.getItem('settings_recording_notifications') !== 'false');
+  const [systemWarnings, setSystemWarnings] = useState(() => localStorage.getItem('settings_system_warnings') === 'true');
+  const [videoQuality, setVideoQuality] = useState(() => localStorage.getItem('settings_video_quality') || 'hd');
+  const [autoRecord, setAutoRecord] = useState(() => localStorage.getItem('settings_auto_record') || 'no');
+
+  const handleSave = () => {
+    localStorage.setItem('settings_session_alerts', String(sessionAlerts));
+    localStorage.setItem('settings_recording_notifications', String(recordingNotifications));
+    localStorage.setItem('settings_system_warnings', String(systemWarnings));
+    localStorage.setItem('settings_video_quality', videoQuality);
+    localStorage.setItem('settings_auto_record', autoRecord);
+    addToast('success', 'Settings saved successfully');
+  };
+
   return (
     <PageWrapper title="Settings" description="Configure your RELAY preferences" section="Account">
       <div className="max-w-lg space-y-6">
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-6 space-y-4">
           <h2 className="text-lg font-semibold">Notifications</h2>
           <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" defaultChecked className="accent-[var(--primary)]" />
+            <input
+              type="checkbox"
+              checked={sessionAlerts}
+              onChange={(e) => setSessionAlerts(e.target.checked)}
+              className="accent-[var(--primary)]"
+            />
             Session assignment alerts
           </label>
           <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" defaultChecked className="accent-[var(--primary)]" />
+            <input
+              type="checkbox"
+              checked={recordingNotifications}
+              onChange={(e) => setRecordingNotifications(e.target.checked)}
+              className="accent-[var(--primary)]"
+            />
             Recording completion notifications
           </label>
           <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" className="accent-[var(--primary)]" />
+            <input
+              type="checkbox"
+              checked={systemWarnings}
+              onChange={(e) => setSystemWarnings(e.target.checked)}
+              className="accent-[var(--primary)]"
+            />
             System degradation warnings
           </label>
         </div>
@@ -36,7 +67,8 @@ export function Settings() {
               { value: 'sd', label: 'SD (480p)' },
               { value: 'auto', label: 'Auto' },
             ]}
-            defaultValue="hd"
+            value={videoQuality}
+            onChange={(e) => setVideoQuality(e.target.value)}
           />
           <Select
             label="Auto-record sessions"
@@ -45,15 +77,17 @@ export function Settings() {
               { value: 'yes', label: 'Yes' },
               { value: 'high', label: 'High priority only' },
             ]}
-            defaultValue="no"
+            value={autoRecord}
+            onChange={(e) => setAutoRecord(e.target.value)}
           />
         </div>
 
-        <Button onClick={() => addToast('success', 'Settings saved')}>Save Changes</Button>
+        <Button onClick={handleSave}>Save Changes</Button>
       </div>
     </PageWrapper>
   );
 }
+
 
 export function Profile() {
   const user = useAuthStore((s) => s.user);
