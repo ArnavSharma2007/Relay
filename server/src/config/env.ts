@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 function required(name: string, fallback?: string): string {
   const val = process.env[name] || fallback;
   if (!val) throw new Error(`Missing required env: ${name}`);
