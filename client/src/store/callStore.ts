@@ -61,7 +61,15 @@ export const useCallStore = create<CallState>((set) => ({
   setPinnedPeerId: (peerId) => set({ pinnedPeerId: peerId }),
   setNetworkQuality: (quality) => set({ networkQuality: quality }),
   setCallDuration: (duration) => set({ callDuration: duration }),
-  reset: () =>
+  reset: () => {
+    // Explicitly stop all local media tracks to turn off the camera/microphone indicator LED
+    const localStream = useCallStore.getState().localStream;
+    if (localStream) {
+      localStream.getTracks().forEach((track) => {
+        track.stop();
+        console.log(`[Media] Stopped track: ${track.kind}`);
+      });
+    }
     set({
       localStream: null,
       remoteStreams: [],
@@ -72,5 +80,6 @@ export const useCallStore = create<CallState>((set) => ({
       pinnedPeerId: null,
       networkQuality: 'hd',
       callDuration: 0,
-    }),
+    });
+  },
 }));
