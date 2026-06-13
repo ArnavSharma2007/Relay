@@ -1,0 +1,40 @@
+# coturn STUN/TURN Server Configuration
+# Copy to /etc/turnserver.conf and replace placeholder values
+
+# Listening port
+listening-port=3478
+tls-listening-port=5349
+
+# Relay ports range
+min-port=49152
+max-port=65535
+
+# Replace with your server's public IP
+# external-ip=YOUR_PUBLIC_IP
+
+# Authentication — use long-term credentials mechanism
+# lt-cred-mech
+# user=relay:YOUR_TURN_PASSWORD
+
+# Realm
+# realm=relay.io
+
+# Logging
+# verbose
+# log-file=/var/log/turnserver.log
+
+# For mediasoup integration, configure iceServers in client:
+# {
+#   urls: ['turn:turn.relay.io:3478'],
+#   username: 'relay',
+#   credential: 'YOUR_TURN_PASSWORD'
+# }
+
+# Security
+# no-multicast-peers
+# no-cli
+# fingerprint
+
+# Certificate for TLS (if using tls-listening-port)
+# cert=/etc/letsencrypt/live/turn.relay.io/fullchain.pem
+# pkey=/etc/letsencrypt/live/turn.relay.io/privkey.pem

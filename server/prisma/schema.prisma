@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      String
+  status    String   @default("online")
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedSessions Session[]      @relation("AssignedAgent")
+  chatMessages     ChatMessage[]
+  participants     Participant[]
+  uploadedFiles    SessionFile[]
+}
+
+model Session {
+  id            String   @id @default(uuid())
+  sessionCode   String   @unique
+  inviteCode    String   @unique
+  inviteLink    String
+  customerName  String
+  customerEmail String
+  agentId       String?
+  agent         User?    @relation("AssignedAgent", fields: [agentId], references: [id])
+  status        String   @default("waiting")
+  priority      String   @default("normal")
+  notes         String?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  duration      Int      @default(0)
+  isRecording   Boolean  @default(false)
+  quality       String   @default("hd")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  chatMessages ChatMessage[]
+  timeline     TimelineEvent[]
+  files        SessionFile[]
+  participants Participant[]
+  recordings   Recording[]
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userName  String
+  role      String
+  content   String
+  type      String   @default("text")
+  fileId    String?
+  status    String   @default("sent")
+  createdAt DateTime @default(now())
+}
+
+model TimelineEvent {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  type        String
+  description String
+  actor       String
+  actorId     String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}
+
+model SessionFile {
+  id             String   @id @default(uuid())
+  sessionId      String
+  session        Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name           String
+  size           Int
+  mimeType       String
+  storageKey     String
+  url            String
+  uploadedBy     String
+  uploader       User     @relation(fields: [uploadedBy], references: [id])
+  uploadedByName String
+  createdAt      DateTime @default(now())
+}
+
+model Recording {
+  id           String   @id @default(uuid())
+  sessionId    String
+  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionCode  String
+  name         String
+  customerName String
+  agentName    String
+  duration     Int      @default(0)
+  size         Int      @default(0)
+  status       String   @default("recording")
+  storageKey   String?
+  url          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Participant {
+  id         String    @id @default(uuid())
+  sessionId  String
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  name       String
+  email      String?
+  role       String
+  joinedAt   DateTime  @default(now())
+  leftAt     DateTime?
+  inviteCode String?
+  quality    String    @default("hd")
+}
+
+model ActivityEvent {
+  id        String   @id @default(uuid())
+  text      String
+  actor     String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+model AdminEvent {
+  id        String   @id @default(uuid())
+  severity  String
+  message   String
+  source    String
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm run build -w server"
+
+[deploy]
+startCommand = "node server/dist/server/src/index.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
