@@ -13,7 +13,11 @@ export async function sendInviteEmail(data: {
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || 'RELAY Support <noreply@relay.io>';
+  let from = process.env.SMTP_FROM || 'RELAY Support <noreply@relay.io>';
+
+  if (host === 'smtp.resend.com' && !process.env.SMTP_FROM) {
+    from = 'RELAY Support <onboarding@resend.dev>';
+  }
 
   let transporter;
 
